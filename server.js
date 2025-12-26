@@ -3,7 +3,8 @@ const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cors = require("cors");
 const app = express();
-const port = 3000;
+require('dotenv').config();
+const PORT=process.env.PORT;
 
 //cors is a middleware function from the cors package.
 //applies it to all routes in your Express app.
@@ -15,6 +16,6 @@ app.use(express.json()); //is built-in middleware that Reads incoming request bo
 app.use("/", userRoutes);
 app.use("/", productRoutes);
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
