@@ -64,11 +64,18 @@ router.delete("/deleteUserId", checkAuthUsingJwt, async (req, res) => {
   try {
     const inputData = new LoginDTO(req.body);
     inputData.validate();
-    const result = await userService.deleteUserAccount(inputData.id);
+    const loggedInUserId = req.user.id;
+    // user can delete ONLY their own account
+    if (inputData.id !== loggedInUserId) {
+      return res.status(403).json({
+        message: "You can only delete your own account",
+      });
+    }
+    const result = await userService.deleteUserAccount(loggedInUserId);
     if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "User not found / Is hard deleted" });
+      return res.status(404).json({
+        message: "User not found.",
+      });
     }
     return res.status(200).json({
       message: "User deleted successfully",
@@ -84,6 +91,13 @@ router.delete("/softDeleteUser", checkAuthUsingJwt, async (req, res) => {
   try {
     const inputData = new LoginDTO(req.body);
     inputData.validate();
+    const loggedInUserId = req.user.id;
+    //soft delete only own id only
+    if (inputData.id !== loggedInUserId) {
+      return res.status(403).json({
+        message: "You can only delete your own account",
+      });
+    }
     const result = await userService.softDeleteUserAccount(inputData.id);
     if (result.affectedRows === 0) {
       return res.status(400).json({ message: "User not found" });
