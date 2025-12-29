@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("./dbConnection");
+const Categories = require("./categoriesModel");
 
 const Product = sequelize.define(
   "Product",
@@ -7,10 +8,11 @@ const Product = sequelize.define(
     p_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
+      allowNull: false,
       autoIncrement: true,
     },
     p_name: {
-      type: DataTypes.STRING(150),
+      type: DataTypes.STRING(100),
       allowNull: false,
     },
     price: {
@@ -20,6 +22,10 @@ const Product = sequelize.define(
     c_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: Categories,
+        key: "c_id",
+      },
     },
   },
   {
@@ -28,4 +34,14 @@ const Product = sequelize.define(
   }
 );
 
+// Associations
+Categories.hasMany(Product, {
+  foreignKey: "c_id",
+  onDelete: "RESTRICT",
+  onUpdate: "CASCADE",
+});
+
+Product.belongsTo(Categories, {
+  foreignKey: "c_id",
+});
 module.exports = Product;
