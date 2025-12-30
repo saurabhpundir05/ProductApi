@@ -25,6 +25,9 @@ app.use("/", discountRoutes);
 app.use("/", discountTypesRoutes);
 
 sequelize
+  // forcing to update db field but not to be used, instead use migration.
+  // .sync({ force: true }) delete full table then make new table
+  // .sync({ alter: true }) not for production changes column name and deletes data
   .sync()
   .then(() => {
     console.log("Tables created successfully");

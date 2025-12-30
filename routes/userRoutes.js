@@ -5,6 +5,7 @@ const generateToken = require("../helpers/jwtToken");
 const userService = require("../services/userDbQueries");
 const { SignupDTO, LoginDTO } = require("../dtos/user.dto");
 const bcrypt = require("bcrypt");
+require("dotenv").config();
 
 //Signup route
 router.post("/signup", async (req, res) => {
@@ -117,5 +118,20 @@ router.patch("/updateUserPassword", checkAuthUsingJwt, async (req, res) => {
     return res.status(400).json({ message: err.message });
   }
 });
+
+// //update users table name field
+// router.get("/userMigration", async (req, res) => {
+//   try {
+//     if (process.env.NODE_ENV !== "development") {
+//       return res.status(403).json({ message: "Forbidden in production" });
+//     }
+//     await sequelize.authenticate(); // ensure DB connected
+//     await umzug.up({ logging: console.log }); // run pending migrations
+//     res.status(200).send("Migration executed successfully");
+//   } catch (err) {
+//     console.error("Migration error:", err);
+//     res.status(500).json({ message: "Cannot run migration" });
+//   }
+// });
 
 module.exports = router;
