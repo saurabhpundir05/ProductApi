@@ -59,4 +59,21 @@ class deleteDTO {
   }
 }
 
-module.exports = { ProductResponseDTO, addDTO, updateDTO, deleteDTO };
+class addToCartDTO {
+  constructor({ p_name }) {
+    this.p_name = p_name;
+  }
+  validate() {
+    if (!this.p_name) {
+      throw new Error("p_name is required");
+    }
+  }
+}
+
+module.exports = {
+  ProductResponseDTO,
+  addDTO,
+  updateDTO,
+  deleteDTO,
+  addToCartDTO,
+};

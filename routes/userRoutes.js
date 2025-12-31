@@ -3,6 +3,7 @@ const checkAuthUsingJwt = require("../middleware/checkAuth");
 const router = express.Router(); //router instance
 const generateToken = require("../helpers/jwtToken");
 const userService = require("../services/userDbQueries");
+const checkUser = require("../middleware/checkTrueUser");
 const { SignupDTO, LoginDTO } = require("../dtos/user.dto");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
@@ -61,40 +62,50 @@ router.post("/login", async (req, res) => {
 });
 
 // delete user account
-router.delete("/deleteUserId", checkAuthUsingJwt, async (req, res) => {
-  try {
-    const inputData = new LoginDTO(req.body);
-    inputData.validate();
-    const result = await userService.deleteUserAccount(inputData.id);
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "User not found / Is hard deleted" });
+router.delete(
+  "/deleteUserId",
+  checkAuthUsingJwt,
+  checkUser,
+  async (req, res) => {
+    try {
+      const inputData = new LoginDTO(req.body);
+      inputData.validate();
+      const result = await userService.deleteUserAccount(inputData.id);
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ message: "User not found / Is hard deleted" });
+      }
+      return res.status(200).json({
+        message: "User deleted successfully",
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(400).json({ message: err.message });
     }
-    return res.status(200).json({
-      message: "User deleted successfully",
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(400).json({ message: err.message });
   }
-});
+);
 
 //soft delete user account
-router.delete("/softDeleteUser", checkAuthUsingJwt, async (req, res) => {
-  try {
-    const inputData = new LoginDTO(req.body);
-    inputData.validate();
-    const result = await userService.softDeleteUserAccount(inputData.id);
-    if (result.affectedRows === 0) {
-      return res.status(400).json({ message: "User not found" });
+router.delete(
+  "/softDeleteUser",
+  checkAuthUsingJwt,
+  checkUser,
+  async (req, res) => {
+    try {
+      const inputData = new LoginDTO(req.body);
+      inputData.validate();
+      const result = await userService.softDeleteUserAccount(inputData.id);
+      if (result.affectedRows === 0) {
+        return res.status(400).json({ message: "User not found" });
+      }
+      return res.status(200).json({ message: "User soft deleted" });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({ message: err.message });
     }
-    return res.status(200).json({ message: "User soft deleted" });
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({ message: err.message });
   }
-});
+);
 
 //update password and name
 router.patch("/updateUserPassword", checkAuthUsingJwt, async (req, res) => {

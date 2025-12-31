@@ -8,6 +8,7 @@ const {
   ProductResponseDTO,
   updateDTO,
   deleteDTO,
+  addToCartDTO,
 } = require("../dtos/product.dto");
 
 //Get all product details
@@ -77,6 +78,36 @@ router.delete("/deleteProductDetails", checkAuthUsingJwt, async (req, res) => {
     }
     return res.status(200).json({
       message: "Product deleted successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message });
+  }
+});
+
+//add to cart
+router.post("/addToCart", checkAuthUsingJwt, async (req, res) => {
+  try {
+    const inputData = new addToCartDTO(req.body);
+    inputData.validate();
+    // Expect input as object { productName: quantity }
+    const productMap = inputData.p_name;
+    //Checks if productMap is NOT an object type.
+    // This catches primitives like strings, numbers, booleans, undefined, etc.
+    //Checks if productMap IS an array. This is necessary because in JavaScript,
+    // typeof [] returns "object", so arrays would pass the first check.
+    if (typeof productMap !== "object" || Array.isArray(productMap)) {
+      return res.status(400).json({ message: "Invalid input format" });
+    }
+    const result = await userService.addToCartProduct(productMap);
+    if (result.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No products added (not found or out of stock)" });
+    }
+    return res.status(200).json({
+      message: "Products added to cart",
+      products: result,
     });
   } catch (err) {
     console.error(err);

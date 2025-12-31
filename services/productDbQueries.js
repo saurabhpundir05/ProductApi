@@ -1,5 +1,6 @@
 const Product = require("../models/productModel");
 const Stock = require("../models/stocksModel");
+const Cart = require("../models/cartModel");
 const sequelize = require("../models/dbConnection");
 
 // get all product details
@@ -10,30 +11,44 @@ const getAllProductDetails = async () => {
 
 //Add new product
 const addNewProduct = async (name, price, c_id = null) => {
-  // to start a new database transaction.
   const t = await sequelize.transaction();
   try {
-    // Insert new product
-    const product = await Product.create(
-      { p_name: name, price, c_id },
-      { transaction: t }
-    );
-    // Insert or update stock
-    const [stock, created] = await Stock.findOrCreate({
-      where: { p_id: product.p_id },
-      defaults: { quantity: 1 },
+    // Check if the product already exists
+    let product = await Product.findOne({
+      where: { p_name: name },
       transaction: t,
     });
-    if (!created) {
-      // Product already exists in stock increment quantity
-      stock.quantity += 1;
-      await stock.save({ transaction: t });
+    if (!product) {
+      // Product doesn't exist, create it
+      product = await Product.create(
+        { p_name: name, price, c_id },
+        { transaction: t }
+      );
+      // Create stock entry with quantity 1
+      await Stock.create(
+        { p_id: product.p_id, quantity: 1 },
+        { transaction: t }
+      );
+    } else {
+      // Product exists, increase stock quantity
+      const stock = await Stock.findOne({
+        where: { p_id: product.p_id },
+        transaction: t,
+      });
+      if (stock) {
+        stock.quantity += 1;
+        await stock.save({ transaction: t });
+      } else {
+        // If stock entry doesn't exist for some reason, create it
+        await Stock.create(
+          { p_id: product.p_id, quantity: 1 },
+          { transaction: t }
+        );
+      }
     }
-    // Commit transaction
     await t.commit();
     return { product_id: product.p_id };
   } catch (err) {
-    // Rollback on error
     await t.rollback();
     throw err;
   }
@@ -91,9 +106,66 @@ const deleteproductDetails = async (p_id) => {
   }
 };
 
+//add to cart
+const addToCartProduct = async (productMap) => {
+  const t = await sequelize.transaction();
+  try {
+    const addedProducts = [];
+    //Object.entries(productMap) - Converts the object into an array of [key, value]
+    //Array destructuring [p_name, quantity]
+    for (const [p_name, quantity] of Object.entries(productMap)) {
+      const product = await Product.findOne({
+        where: { p_name },
+        transaction: t,
+      });
+      if (!product) continue;
+      const stock = await Stock.findOne({
+        where: { p_id: product.p_id },
+        transaction: t,
+        //Applies a pessimistic lock on the selected row
+        //Uses FOR UPDATE in SQL, preventing other transactions
+        //from modifying this row until the current transaction completes
+        lock: t.LOCK.UPDATE,
+      });
+      if (!stock || stock.quantity <= 0) {
+        //Skips the rest of the current loop iteration Moves to the next item in the loop
+        continue;
+      }
+      // Determine how many units can actually be added quantity = what user want
+      const qtyToAdd = Math.min(quantity, stock.quantity);
+      // Reduce stock quantity in quantity column
+      await Stock.decrement("quantity", {
+        //how much quantity to decrease
+        by: qtyToAdd,
+        where: { p_id: product.p_id },
+        transaction: t,
+      });
+      // Add to cart
+      await Cart.create(
+        { p_id: product.p_id, price: product.price, quantity: qtyToAdd },
+        { transaction: t }
+      );
+      // Add to response (array)
+      addedProducts.push({
+        p_id: product.p_id,
+        p_name: product.p_name,
+        price: product.price,
+        quantity: qtyToAdd,
+      });
+    }
+    await Cart.destroy({ where: {}, truncate: true, transaction: t });
+    await t.commit();
+    return addedProducts;
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
 module.exports = {
   getAllProductDetails,
   addNewProduct,
   updateProduct,
   deleteproductDetails,
+  addToCartProduct,
 };
