@@ -1,3 +1,4 @@
+//umzug config
 const { Umzug, SequelizeStorage } = require("umzug");
 const sequelize = require("../models/dbConnection");
 const { Sequelize } = require("sequelize");
