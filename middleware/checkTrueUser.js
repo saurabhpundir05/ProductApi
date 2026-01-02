@@ -1,5 +1,5 @@
 // this middleware is for deleting user id .
-// it only allows the login user to delete its own id, not others
+// it only allows the login user to delete its own id, not others.
 function checkUser(req, res, next) {
   const authUser = req.user;
   const { id } = req.body;
